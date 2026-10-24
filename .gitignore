@@ -1,0 +1,14 @@
+# ROS 2 generated files
+/build/
+/install/
+/log/
+
+# Python generated files
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Editor and environment files
+.vscode/
+.idea/
+.env
