@@ -23,7 +23,7 @@ setup(
         ],
     },
     entry_points={
-        'console_scripts': ['motor_bridge = mypypkg.motor_bridge:main',
+        'console_scripts': ['motor_bridge = mypypkg.motor_bridge:main','imu_bridge= mypypkg.imu_bridge:main',
         ],
     },
 )

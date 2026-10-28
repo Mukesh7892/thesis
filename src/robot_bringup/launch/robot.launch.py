@@ -46,9 +46,48 @@ def generate_launch_description():
             'command_timeout': 0.30,
         }],
     )
+    imu_bridge = Node(
+        package='mypypkg',
+        executable='imu_bridge',
+        name='imu_bridge',
+        output='screen',
+        parameters=[{
+            'i2c_bus': 7,
+            'publish_rate': 50.0,
+            'frame_id': 'imu_link',
+        }],
+    )
+    imu_static_tf = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='static_tf_pub_imu',
+        arguments=[
+            '0', '0', '0',
+            '0', '0', '0',
+            'base_link',
+            'imu_link',
+        ],
+        output='screen',
+    )
+    ekf_node = Node(
+        package='robot_localization',
+        executable='ekf_node',
+        name='ekf_filter_node',
+        output='screen',
+        parameters=[
+            os.path.join(
+                get_package_share_directory('robot_bringup'),
+                'config',
+                'ekf.yaml',
+            )
+        ],
+    )             
 
     return LaunchDescription([
         lidar_launch,
         motor_bridge,
+        imu_bridge,
+        imu_static_tf,
         rf2o_launch,
+        ekf_node,
     ])

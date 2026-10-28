@@ -222,7 +222,24 @@ void CLaserOdometry2DNode::publish()
   odom.child_frame_id = base_frame_id;
   odom.twist.twist.linear.x = rf2o_ref.lin_speed;    //linear speed
   odom.twist.twist.linear.y = 0.0;
-  odom.twist.twist.angular.z = rf2o_ref.ang_speed;   //angular speed
+  odom.twist.twist.angular.z = rf2o_ref.ang_speed;
+  // Initial covariance estimates; tune using stationary and motion tests.
+  odom.pose.covariance[0]  = 0.01;  // x
+  odom.pose.covariance[7]  = 0.01;  // y
+  odom.pose.covariance[35] = 0.03;  // yaw
+
+  odom.twist.covariance[0]  = 0.04; // linear velocity x
+  odom.twist.covariance[35] = 0.03; // angular velocity z
+
+  // Mark unobserved dimensions as highly uncertain.
+  odom.pose.covariance[14] = 1e6;  // z
+  odom.pose.covariance[21] = 1e6;  // roll
+  odom.pose.covariance[28] = 1e6;  // pitch
+
+  odom.twist.covariance[7]  = 1e6; // linear velocity y
+  odom.twist.covariance[14] = 1e6; // linear velocity z
+  odom.twist.covariance[21] = 1e6; // angular velocity x
+  odom.twist.covariance[28] = 1e6; // angular velocity y   //angular speed
   //publish the message
   odom_pub->publish(odom);
 

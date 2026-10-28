@@ -1,0 +1,216 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="mobile_robot">
+
+  <xacro:property name="chassis_mass"   value="3.2"/>
+  <xacro:property name="chassis_length" value="0.370"/>
+  <xacro:property name="chassis_width"  value="0.260"/>
+  <xacro:property name="chassis_height" value="0.120"/>
+
+  <xacro:property name="wheel_mass"     value="0.800"/>
+  <xacro:property name="wheel_radius"   value="0.050"/>
+  <xacro:property name="wheel_length"   value="0.043"/>
+
+  <xacro:property name="lidar_mass"     value="0.230"/>
+  <xacro:property name="lidar_radius"   value="0.030"/>
+  <xacro:property name="lidar_length"   value="0.08"/>
+
+  <material name="chassis_color"><color rgba="0.2 0.2 0.2 1"/></material>
+  <material name="wheel_color"><color rgba="0.05 0.05 0.05 1"/></material>
+  <material name="lidar_color"><color rgba="0.0 0.0 0.8 1"/></material>
+
+  <xacro:macro name="box_inertia" params="m l w h">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="${m}"/>
+      <inertia ixx="${(1.0/12.0) * m * (w*w + h*h)}" ixy="0.0" ixz="0.0"
+               iyy="${(1.0/12.0) * m * (l*l + h*h)}" iyz="0.0"
+               izz="${(1.0/12.0) * m * (l*l + w*w)}"/>
+    </inertial>
+  </xacro:macro>
+
+  <xacro:macro name="wheel_cylinder_inertia" params="m r h">
+    <inertial>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <mass value="${m}"/>
+      <inertia ixx="${(1.0/12.0) * m * (3.0*r*r + h*h)}" ixy="0.0" ixz="0.0"
+               iyy="${(1.0/2.0) * m * (r*r)}" iyz="0.0"
+               izz="${(1.0/12.0) * m * (3.0*r*r + h*h)}"/>
+    </inertial>
+  </xacro:macro>
+
+  <xacro:macro name="lidar_inertia" params="m r h">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="${m}"/>
+      <inertia ixx="${(1.0/12.0) * m * (3.0*r*r + h*h)}" ixy="0.0" ixz="0.0"
+               iyy="${(1.0/12.0) * m * (3.0*r*r + h*h)}" iyz="0.0"
+               izz="${(1.0/2.0) * m * (r*r)}"/>
+    </inertial>
+  </xacro:macro>
+
+  <link name="base_footprint"/>
+
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0.11" rpy="0 0 0"/>
+  </joint>
+
+  <link name="base_link">
+    <xacro:box_inertia m="${chassis_mass}" l="${chassis_length}" w="${chassis_width}" h="${chassis_height}"/>
+    <visual name="base_link_visual">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+      </geometry>
+      <material name="chassis_color"/>
+    </visual>
+    <collision name="base_link_collision">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <gazebo reference="base_link">
+    <material>Gazebo/DarkGrey</material>
+  </gazebo>
+
+  <xacro:macro name="wheel" params="prefix x_reflect y_reflect">
+    <link name="${prefix}_wheel">
+      <xacro:wheel_cylinder_inertia m="${wheel_mass}" r="${wheel_radius}" h="${wheel_length}"/>
+      <visual name="${prefix}_wheel_visual">
+        <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_length}"/>
+        </geometry>
+        <material name="wheel_color"/>
+      </visual>
+      <collision name="${prefix}_wheel_collision">
+        <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_length}"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <gazebo reference="${prefix}_wheel">
+      <mu1>1.5</mu1>
+      <mu2>1.5</mu2>
+      <kp>1000000.0</kp>
+      <kd>100.0</kd>
+    </gazebo>
+
+    <joint name="${prefix}_wheel_joint" type="continuous">
+      <origin xyz="${x_reflect * 0.135} ${y_reflect * 0.1515} -0.06" rpy="0 0 0"/>
+      <parent link="base_link"/>
+      <child link="${prefix}_wheel"/>
+      <axis xyz="0 1 0"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:wheel prefix="right_front" x_reflect="1"  y_reflect="-1"/>
+  <xacro:wheel prefix="right_rear"  x_reflect="-1" y_reflect="-1"/>
+  <xacro:wheel prefix="left_front"  x_reflect="1"  y_reflect="1"/>
+  <xacro:wheel prefix="left_rear"   x_reflect="-1" y_reflect="1"/>
+
+  <link name="laser_frame">
+    <xacro:lidar_inertia m="${lidar_mass}" r="${lidar_radius}" h="${lidar_length}"/>
+    <visual name="gpu_lidar_visual">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="${lidar_radius}" length="${lidar_length}"/>
+      </geometry>
+      <material name="lidar_color"/>
+    </visual>
+    <collision name="gpu_lidar_collision">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="${lidar_radius}" length="${lidar_length}"/>
+      </geometry>
+    </collision>
+    
+  </link>
+  
+
+
+  <joint name="laser_joint" type="fixed">
+    <origin xyz="0 0 0.1" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="laser_frame"/>
+  </joint>
+
+  <link name="imu_link"/>
+    <joint name="imu_joint" type="fixed">
+    <origin xyz="-0.040 0.0 0.07" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+  </joint>
+  <gazebo>
+    <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
+      <left_joint>left_front_wheel_joint</left_joint>
+      <left_joint>left_rear_wheel_joint</left_joint>
+      <right_joint>right_front_wheel_joint</right_joint>
+      <right_joint>right_rear_wheel_joint</right_joint>
+      <wheel_separation>0.3030</wheel_separation>
+      <wheel_radius>${wheel_radius}</wheel_radius>
+      <topic>/cmd_vel</topic>
+      <!-- <odom_topic>/odom</odom_topic> -->
+      <!-- <tf_topic>/tf</tf_topic> -->
+      <!-- <frame_id>odom</frame_id> -->
+      <!-- <child_frame_id>base_footprint</child_frame_id> -->
+      <!-- <odom_publish_frequency>30</odom_publish_frequency> -->
+      </plugin>
+
+      <plugin
+        filename="gz-sim-odometry-publisher-system"
+        name="gz::sim::systems::OdometryPublisher">
+        <odom_frame>odom</odom_frame>
+        <robot_base_frame>base_footprint</robot_base_frame>
+        <odom_publish_frequency>50</odom_publish_frequency>
+        <odom_topic>/odom</odom_topic>
+        <tf_topic>/tf</tf_topic>
+        <dimensions>2</dimensions>
+        </plugin>
+    
+    <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher">
+      <topic>/joint_states</topic>
+      <joint_name>left_front_wheel_joint</joint_name>
+      <joint_name>left_rear_wheel_joint</joint_name>
+      <joint_name>right_front_wheel_joint</joint_name>
+      <joint_name>right_rear_wheel_joint</joint_name>
+    </plugin>
+  </gazebo>
+  
+  <gazebo reference = "laser_frame">
+   <sensor name="laser" type="gpu_lidar">
+      <topic>/lidar</topic>
+      <update_rate>10</update_rate>
+      <frame_id>laser_frame</frame_id>
+      <lidar>
+        <scan>
+          <horizontal>
+            <samples>360</samples>
+            <resolution>1</resolution>
+            <min_angle>-3.14159</min_angle>
+            <max_angle>3.14159</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.12</min>
+          <max>12.0</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.001</stddev>
+        </noise>
+      </lidar>
+      <always_on>1</always_on>
+      <visualize>true</visualize>
+    </sensor>
+    </gazebo>
+
+</robot>
