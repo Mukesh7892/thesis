@@ -1,5 +1,6 @@
 import os
-
+from launch.substitutions import Command
+from launch_ros.parameter_descriptions import ParameterValue
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
@@ -10,7 +11,29 @@ from launch_ros.actions import Node
 def generate_launch_description():
     lidar_share = get_package_share_directory('ydlidar_ros2_driver')
     rf2o_share = get_package_share_directory('rf2o_laser_odometry')
+        # Robot description from Xacro
+    robot_bringup_share = get_package_share_directory('robot_bringup')
 
+    xacro_file = os.path.join(
+        robot_bringup_share,
+        'urdf',
+        'thesis_bot1.urdf.xacro'
+    )
+
+    robot_description = ParameterValue(
+        Command(['xacro ', xacro_file]),
+        value_type=str
+    )
+
+    robot_state_publisher = Node(
+        package='robot_state_publisher',
+        executable='robot_state_publisher',
+        name='robot_state_publisher',
+        output='screen',
+        parameters=[{
+            'robot_description': robot_description
+        }]
+    )
     # Use the configuration specifically for the YDLIDAR X2.
     lidar_params = os.path.join(
         lidar_share, 'params', 'X2.yaml'
@@ -57,18 +80,7 @@ def generate_launch_description():
             'frame_id': 'imu_link',
         }],
     )
-    imu_static_tf = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='static_tf_pub_imu',
-        arguments=[
-            '0', '0', '0',
-            '0', '0', '0',
-            'base_link',
-            'imu_link',
-        ],
-        output='screen',
-    )
+
     ekf_node = Node(
         package='robot_localization',
         executable='ekf_node',
@@ -81,13 +93,13 @@ def generate_launch_description():
                 'ekf.yaml',
             )
         ],
-    )             
+    )
 
     return LaunchDescription([
         lidar_launch,
         motor_bridge,
         imu_bridge,
-        imu_static_tf,
+        robot_state_publisher,
         rf2o_launch,
         ekf_node,
     ])
